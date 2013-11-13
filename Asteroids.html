@@ -1,0 +1,207 @@
+<html>
+     <script src="jquery-2.0.3.min.js"></script>
+     <link rel="stylesheet" type="text/css" href="DropDownMenu.css">
+    <head>
+        <title>Three.js Asteroids Prototype</title>
+        <style>canvas { width: 100%; height: 100% }</style>
+
+    </head>
+
+    <style>
+    body
+    {
+        margin: 0px;
+        overflow: hidden;
+    }
+    </style>
+
+    <body>
+    <script src="three.js"></script>
+    <script src="Ship.js"></script>
+    <script src="Asteroid.js"></script>
+    <script>
+    function main(){
+    try{
+        //keypresses
+        var Space_Down = false;
+        var Forward_Down = false;
+        var Backward_Down = false;
+        var Left_Down = false;
+        var Right_Down = false;
+
+        //initialize scene
+        var scene = new THREE.Scene();
+        
+        //selecting a renderer to use
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        //which side of window is largest
+        var viewportSize = window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth;
+        var margins = window.innerWidth > window.innerHeight ? window.innerWidth - viewportSize : window.innerHeight - viewportSize;
+        var leftmargin = margins / 2;
+
+        //set window to appropriate square area
+        renderer.setViewport(leftmargin, 0, viewportSize, viewportSize);
+        
+        //ortho camera for 2d rendering
+        var camera = new THREE.OrthographicCamera( viewportSize / - 2, viewportSize / 2, viewportSize / 2, viewportSize / - 2, 1, 1000 );
+
+        //position camera
+        camera.position.z = 1000;
+        camera.position.x = 0;
+        camera.position.y = 0;
+
+        //black background
+        var blackMaterial = new THREE.MeshBasicMaterial( { color: 0x000000 } ); 
+        var background = new THREE.Mesh( new THREE.PlaneGeometry( viewportSize, viewportSize, 1, 1 ), blackMaterial );
+        background.position.set( 0, 0, 0 );
+        scene.add( background );
+
+        //init spaceship and asteroids
+        var spaceShip = new SpaceShip(scene, Date.now(), viewportSize);
+        var Asteroids = [];
+        var seedDate = Date.now();
+        for(var i = 0; i < 5; i ++){
+            var a = new Asteroid(scene,5,1,viewportSize,seedDate);
+            Asteroids.push(a);
+        }
+
+        //keep track of bullets that are still "live"
+        var activeBullets = [];
+
+        //main render loop
+        function render () {
+            try{
+                var time = Date.now();
+                //shoot dem bullets
+                if(Space_Down){
+                    var newBullet = spaceShip.shoot(time);
+                    //if a new bullet has been created add it to the bullet array
+                    if (newBullet != undefined){
+                        activeBullets.push(newBullet);
+                    }
+                }
+                if(Left_Down){
+                    spaceShip.rotateLeft(time);
+                }
+                if(Right_Down){
+                    spaceShip.rotateRight(time);
+                }
+                if(Forward_Down){
+                    spaceShip.goForward(time)
+                }
+
+                //game logic goes here
+                spaceShip.draw(time);
+                for(var i = 0; i < Asteroids.length; i ++){
+                    Asteroids[i].draw(time);
+                    if(Asteroids[i].checkCollision(spaceShip.getVertices())){
+                        alert("SHIP IS HIT!");
+                    } 
+                }
+                //check all bullets
+                var tempBullets = [];
+                for(var i = 0; i < activeBullets.length; i ++){
+                    var bullet = activeBullets[i];
+
+                    //check to see if this is a "dead" bullet
+                    if(bullet.checkTime(time)){
+                        //check for an asteroid intersection
+                        var destroy = false;
+                        for(var j = 0; j < Asteroids.length; j ++){
+                            if(Asteroids[j].checkCollision([bullet.position()])){
+                                //alert("bullet hit asteroid");
+                                destroy = true;
+
+                                //remove the offending asteroid
+                                Asteroids[j].destroy();
+                                Asteroids.splice(j,1);
+                                j--;
+                            }
+                        }
+                        if(!destroy){
+                            bullet.move();
+                            tempBullets.push(bullet);
+                        }
+                        else bullet.destroy();
+                    }
+                    else bullet.destroy();
+                }
+                activeBullets = tempBullets.slice(0);
+
+            }
+            catch(Error){
+                alert(Error);
+            }
+            
+
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+        render();
+
+        function onWindowResize() {
+        }
+
+        function onDocumentKeyDown( event ) {
+
+            switch( event.keyCode ) {
+                case 32: //' '
+                    Space_Down = true;
+                    break;
+                case 38: //'up arrow'
+                    Forward_Down = true;
+                    break;
+                case 40: //'down arrow'
+                    Back_Down = true;
+                    break;
+                case 37: //'left arrow'
+                    Left_Down = true;
+                    break;
+                case 39: //'right arrow'
+                    Right_Down = true;
+                    break;
+            }
+        }
+
+        function onDocumentKeyUp( event ) {
+            switch( event.keyCode ) {
+                case 32: //' '
+                    Space_Down = false;
+                    break;
+                case 38: //'up arrow'
+                    Forward_Down = false;
+                    break;
+                case 40: //'down arrow'
+                    Back_Down = false;
+                    break;
+                case 37: //'left arrow'
+                    Left_Down = false;
+                    break;
+                case 39: //'right arrow'
+                    Right_Down = false;
+                    break;
+            }
+        }
+
+
+        //listeners for events
+        window.addEventListener( 'resize', onWindowResize, false );
+        document.addEventListener( 'keydown', onDocumentKeyDown, false );
+        document.addEventListener( 'keyup', onDocumentKeyUp, false );
+
+    }
+    catch(Error){
+        alert(Error);
+    }
+    }
+
+    main();
+    
+    
+
+    </script>
+</body>
+</html>
