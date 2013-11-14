@@ -28,6 +28,8 @@
         var Backward_Down = false;
         var Left_Down = false;
         var Right_Down = false;
+        //whether or not the Space key was held as of last frame
+        var Space_Held = false;
 
         //initialize scene
         var scene = new THREE.Scene();
@@ -64,7 +66,8 @@
         var Asteroids = [];
         var seedDate = Date.now();
         for(var i = 0; i < 5; i ++){
-            var a = new Asteroid(scene,5,1,viewportSize,seedDate);
+            var a = new Asteroid(scene,5,4,viewportSize,seedDate);
+            a.randomStart();
             Asteroids.push(a);
         }
 
@@ -77,11 +80,17 @@
                 var time = Date.now();
                 //shoot dem bullets
                 if(Space_Down){
-                    var newBullet = spaceShip.shoot(time);
+
+                    var newBullet = spaceShip.shoot(time, Space_Held);
                     //if a new bullet has been created add it to the bullet array
                     if (newBullet != undefined){
                         activeBullets.push(newBullet);
                     }
+
+                    Space_Held = true;
+                }
+                else{
+                    Space_Held = false;
                 }
                 if(Left_Down){
                     spaceShip.rotateLeft(time);
@@ -110,15 +119,25 @@
                     if(bullet.checkTime(time)){
                         //check for an asteroid intersection
                         var destroy = false;
+                        var asteroidsToAdd = [];
                         for(var j = 0; j < Asteroids.length; j ++){
                             if(Asteroids[j].checkCollision([bullet.position()])){
                                 //alert("bullet hit asteroid");
                                 destroy = true;
 
                                 //remove the offending asteroid
-                                Asteroids[j].destroy();
+                                var childAsteroids = Asteroids[j].destroy();
                                 Asteroids.splice(j,1);
                                 j--;
+
+                                //add child asteroids if applicable
+                                if(childAsteroids != undefined){
+                                    for(var k = 0 ; k < childAsteroids.length; k ++){
+                                        asteroidsToAdd.push(childAsteroids[k]);
+                                    }
+                                }
+                                
+                                
                             }
                         }
                         if(!destroy){
@@ -126,6 +145,7 @@
                             tempBullets.push(bullet);
                         }
                         else bullet.destroy();
+                        Asteroids = Asteroids.concat(asteroidsToAdd);
                     }
                     else bullet.destroy();
                 }

@@ -11,7 +11,9 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
 	    var asteroidVector = new THREE.Vector3(Math.random() * difficulty * 75 * xDMod, Math.random() * difficulty * 75 * yDMod, 0);
 
 	    this.position = new THREE.Vector3();
+	    this.Difficulty = difficulty;
 	    var that = this;
+
 
 	    //last time the asteroid was updated
 		var lastTime = time;
@@ -61,7 +63,7 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
 	    }
 
 	    //set a random starting position
-	    function randomStart(){
+	    this.randomStart = function(){
 	    	var startX = 0;
 	    	var startY = 0;
 	    	while(that.checkCollision([new THREE.Vector3(10, 10, 0)])){
@@ -81,7 +83,21 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
 	    	}
 	    	
 	    }
-	    randomStart();
+
+	    //a fixed starting position
+	    this.fixedStart = function(location){
+	    	var startX = location.x;
+	    	var startY = location.y;
+
+	    	bulletHitboxVertices = [];
+    		bulletHitboxVertices.push(new THREE.Vector3((-4 * scale) + startX,(-4 * scale) + startY,0));
+    		bulletHitboxVertices.push(new THREE.Vector3((-4 * scale) + startX,(4 * scale) + startY,0));
+    		bulletHitboxVertices.push(new THREE.Vector3((4 * scale) + startX,(4 * scale) + startY,0));
+    		bulletHitboxVertices.push(new THREE.Vector3((4 * scale) + startX,(-4 * scale) + startY,0));
+
+	    	mainAsteroid.position.set(startX, startY, 750);
+	    	that.position.copy(mainAsteroid.position);
+	    }
 	    
 
 	    //set asteroid scale
@@ -126,6 +142,27 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
 
 	    this.destroy = function(){
 	    	scene.remove(mainAsteroid);
+	    	var childAsteroids = [];
+
+	    	if(scale == 5){
+		        var seedDate = Date.now();
+		        for(var i = 0; i < 3; i ++){
+		            var a = new Asteroid(scene,3,that.Difficulty,viewportSize,seedDate);
+		            a.fixedStart(that.position)
+		            childAsteroids.push(a);
+		        }
+	    	}
+
+	    	if(scale == 3){
+	    		var seedDate = Date.now();
+		        for(var i = 0; i < 3; i ++){
+		            var a = new Asteroid(scene,2,that.Difficulty,viewportSize,seedDate);
+		            a.fixedStart(that.position)
+		            childAsteroids.push(a);
+		        }
+	    	}
+
+	    	return childAsteroids;
 	    }
 	}
 	catch(err){

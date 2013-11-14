@@ -93,10 +93,14 @@ function SpaceShip(scene, time, viewportSize){
         shipExhaust.position.z = 1;
     }
 
-    this.shoot = function(t){
+    this.shoot = function(t, held){
     	updateTime(t);
+
+    	//set time based on whether or not space was held
+    	var shotdelay = held ? 350 : 100;
+
     	//check to see if enough time has elapsed since the last shot
-    	if(lastTime - lastShot > 350){
+    	if(lastTime - lastShot > shotdelay){
     		lastShot = lastTime;
     		var b = new Bullet(spaceShip.position, spaceShip.rotation, 2.5, scene, lastTime, viewportSize);
     		return b;
