@@ -1,4 +1,4 @@
-function SpaceShip(scene, time, viewportSize, scale){
+function SpaceShip(scene, time, viewportSize, scale, audioContext, player){
 	"use strict";
 
 
@@ -59,6 +59,30 @@ function SpaceShip(scene, time, viewportSize, scale){
     scene.add(spaceShip);
     scene.add(shipExhaust);
 
+    //set up sounds
+    var shotBuffer = null;
+    var thrustBuffer = null;
+    function loadSounds(i){
+
+        var request = new XMLHttpRequest();
+        if(i == 0)request.open('GET', "Sounds/fire.wav", true);
+        if(i == 1)request.open('GET', "Sounds/thrust.wav", true);
+        request.responseType = 'arraybuffer';
+
+        // Decode asynchronously
+        request.onload = function() {
+            audioContext.decodeAudioData(request.response, function(buffer) {
+            if(i == 0)shotBuffer = buffer;
+            if(i == 1)thrustBuffer = buffer;
+            });
+        }
+        request.send();
+    }
+    if(player){
+        loadSounds(0);
+        loadSounds(1);
+    }
+
     this.setPosition = function(v){
     	spaceShip.position.set(v.x,v.y,v.z);
     	shipExhaust.position.set(v.x,v.y,0);
@@ -103,6 +127,9 @@ function SpaceShip(scene, time, viewportSize, scale){
         shipExhaust.rotation.z -= 6 * timeDelta;
     }
 
+    //keep track of the last time we made the thrust sound
+    var lastThrustTime = 0;
+
     this.goForward = function(t){
     	updateTime(t);
     	var forwardVector = new THREE.Vector3(0, 10 * timeDelta, 0);
@@ -118,6 +145,15 @@ function SpaceShip(scene, time, viewportSize, scale){
         	shipMomentum.add(forwardVector);
         //}
         
+        //thrust sound
+        if(lastTime - lastThrustTime > 250){
+            lastThrustTime = lastTime;
+            var thrustSource = audioContext.createBufferSource();
+            thrustSource.buffer = thrustBuffer;
+            thrustSource.connect(audioContext.destination);
+            thrustSource.start(0);
+        }
+
         //make sure ship doesn't go too fast
         if(shipMomentum.x > 5) shipMomentum.x = 5;
         if(shipMomentum.x < -5) shipMomentum.x = -5;
@@ -134,10 +170,16 @@ function SpaceShip(scene, time, viewportSize, scale){
     	//set time based on whether or not space was held
     	var shotdelay = held ? 350 : 100;
 
+        //sounds
+        var shotSource = audioContext.createBufferSource();
+        shotSource.buffer = shotBuffer;
+        shotSource.connect(audioContext.destination);
+
     	//check to see if enough time has elapsed since the last shot
     	if(lastTime - lastShot > shotdelay){
     		lastShot = lastTime;
     		var b = new Bullet(spaceShip.position, spaceShip.rotation, scale, scene, lastTime, viewportSize);
+            shotSource.start(0);
     		return b;
     	}
     	

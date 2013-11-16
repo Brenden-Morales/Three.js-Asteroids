@@ -66,6 +66,10 @@
         background.position.set( 0, 0, 0 );
         scene.add( background );
 
+        //init audio context
+        window.AudioContext = window.AudioContext;
+        audioContext = new AudioContext();
+
         //restart message
         var newgame = new newGame(scene);
         newgame.hide();
@@ -73,21 +77,23 @@
         //set the number of lives player has
         for(var i = 1; i <= Lives; i ++){
             var lifePosition = new THREE.Vector3((viewportSize/-2) + (20 * i), (viewportSize /2) - 20, 750);
-            var lifeShip = new SpaceShip(scene, Date.now(), viewportSize, 4);
+            var lifeShip = new SpaceShip(scene, Date.now(), viewportSize, 4, audioContext, false);
             lifeShip.setPosition(lifePosition);
             LivesLeft.push(lifeShip);
         }
 
         //init spaceship and asteroids
-        var spaceShip = new SpaceShip(scene, Date.now(), viewportSize, 2.5);
+        var spaceShip = new SpaceShip(scene, Date.now(), viewportSize, 2.5, audioContext, true);
         spaceShip.setInvincible();
         var Asteroids = [];
         var seedDate = Date.now();
         for(var i = 0; i < 5; i ++){
-            var a = new Asteroid(scene,5,2,viewportSize,seedDate);
+            var a = new Asteroid(scene,5,2,viewportSize,seedDate, audioContext);
             a.randomStart();
             Asteroids.push(a);
         }
+
+        
 
         //keep track of bullets that are still "live"
         var activeBullets = [];
@@ -133,7 +139,7 @@
 
                     var asteroids = []
                     for(var i = 0; i < 5; i ++){
-                        var a = new Asteroid(scene,5,2,viewportSize,time - 1);
+                        var a = new Asteroid(scene,5,2,viewportSize,time - 1, audioContext);
                         a.randomStart();
                         Asteroids.push(a);
                     }

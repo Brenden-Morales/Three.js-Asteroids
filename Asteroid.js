@@ -1,4 +1,4 @@
-function Asteroid(scene, scale, difficulty, viewportSize, time){
+function Asteroid(scene, scale, difficulty, viewportSize, time, audioContext){
 
 	try{
 		//the white line we use to draw the asteroids
@@ -47,6 +47,32 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
 	    bulletHitboxVertices.push(new THREE.Vector3(-4 * scale,4 * scale,0));
 	    bulletHitboxVertices.push(new THREE.Vector3(4 * scale,4 * scale,0));
 	    bulletHitboxVertices.push(new THREE.Vector3(4 * scale,-4 * scale,0));
+
+	    //set up sounds
+	    var largeExplosionBuffer = null;
+	    var mediumExplosionBuffer = null;
+	    var smallExplosionBuffer = null;
+	    function loadSounds(i){
+
+	        var request = new XMLHttpRequest();
+	        if(i == 0)request.open('GET', "Sounds/bangLarge.wav", true);
+	        if(i == 1)request.open('GET', "Sounds/bangMedium.wav", true);
+	        if(i == 2)request.open('GET', "Sounds/bangSmall.wav", true);
+	        request.responseType = 'arraybuffer';
+
+	        // Decode asynchronously
+	        request.onload = function() {
+	            audioContext.decodeAudioData(request.response, function(buffer) {
+	            if(i == 0)largeExplosionBuffer = buffer;
+	            if(i == 1)mediumExplosionBuffer = buffer;
+	            if(i == 2)smallExplosionBuffer = buffer;
+	            });
+	        }
+	        request.send();
+	    }
+	    loadSounds(0);
+	    loadSounds(1);
+	    loadSounds(2);
 
 	    //check if any of the points collides with this hitbox
 	    this.checkCollision = function(points){
@@ -147,21 +173,41 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
 	    	var childAsteroids = [];
 
 	    	if(scale == 5){
+	    		//large explosion
+		        var explosionSource = audioContext.createBufferSource();
+		        explosionSource.buffer = largeExplosionBuffer;
+		        explosionSource.connect(audioContext.destination);
+		        explosionSource.start(0);
+
 		        var seedDate = Date.now();
 		        for(var i = 0; i < 3; i ++){
-		            var a = new Asteroid(scene,3,that.Difficulty,viewportSize,seedDate);
+		            var a = new Asteroid(scene,3,that.Difficulty,viewportSize,seedDate, audioContext);
 		            a.fixedStart(that.position)
 		            childAsteroids.push(a);
 		        }
 	    	}
 
 	    	if(scale == 3){
+	    		//medium explosion
+		        var explosionSource = audioContext.createBufferSource();
+		        explosionSource.buffer = mediumExplosionBuffer;
+		        explosionSource.connect(audioContext.destination);
+		        explosionSource.start(0);
+
 	    		var seedDate = Date.now();
 		        for(var i = 0; i < 3; i ++){
-		            var a = new Asteroid(scene,2,that.Difficulty,viewportSize,seedDate);
+		            var a = new Asteroid(scene,2,that.Difficulty,viewportSize,seedDate, audioContext);
 		            a.fixedStart(that.position)
 		            childAsteroids.push(a);
 		        }
+	    	}
+
+	    	if(scale == 2){
+	    		//small explosion
+		        var explosionSource = audioContext.createBufferSource();
+		        explosionSource.buffer = smallExplosionBuffer;
+		        explosionSource.connect(audioContext.destination);
+		        explosionSource.start(0);
 	    	}
 
 	    	return childAsteroids;
