@@ -96,15 +96,17 @@ function Asteroid(scene, scale, difficulty, viewportSize, time){
     		bulletHitboxVertices.push(new THREE.Vector3((4 * scale) + startX,(-4 * scale) + startY,0));
 
 	    	mainAsteroid.position.set(startX, startY, 750);
+	    	if(isNaN(mainAsteroid.position.x)) alert("bFUCK");
 	    	that.position.copy(mainAsteroid.position);
+	    	if(isNaN(that.position.x)) alert("cFUCK");
 	    }
 	    
 
 	    //set asteroid scale
+	    if(isNaN(mainAsteroid.position.x)) alert("aFUCK");
 	    mainAsteroid.scale.set(scale,scale,1);
 	    scene.add(mainAsteroid);
 
-	    if(this.position.x == NaN) alert("FUCK!");
 
 	    function setHitboxXY(xValue, yValue){
 	    	bulletHitboxVertices = [];

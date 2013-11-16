@@ -1,6 +1,5 @@
 <html>
      <script src="jquery-2.0.3.min.js"></script>
-     <link rel="stylesheet" type="text/css" href="DropDownMenu.css">
     <head>
         <title>Three.js Asteroids Prototype</title>
         <style>canvas { width: 100%; height: 100% }</style>
@@ -19,6 +18,7 @@
     <script src="three.js"></script>
     <script src="Ship.js"></script>
     <script src="Asteroid.js"></script>
+    <script src="Restart.js"></script>
     <script>
     function main(){
     try{
@@ -28,8 +28,13 @@
         var Backward_Down = false;
         var Left_Down = false;
         var Right_Down = false;
+        var Y_Down = false;
         //whether or not the Space key was held as of last frame
         var Space_Held = false;
+
+        //initialize lives
+        var Lives = 3;
+        var LivesLeft = [];
 
         //initialize scene
         var scene = new THREE.Scene();
@@ -61,12 +66,25 @@
         background.position.set( 0, 0, 0 );
         scene.add( background );
 
+        //restart message
+        var newgame = new newGame(scene);
+        newgame.hide();
+
+        //set the number of lives player has
+        for(var i = 1; i <= Lives; i ++){
+            var lifePosition = new THREE.Vector3((viewportSize/-2) + (20 * i), (viewportSize /2) - 20, 750);
+            var lifeShip = new SpaceShip(scene, Date.now(), viewportSize, 4);
+            lifeShip.setPosition(lifePosition);
+            LivesLeft.push(lifeShip);
+        }
+
         //init spaceship and asteroids
-        var spaceShip = new SpaceShip(scene, Date.now(), viewportSize);
+        var spaceShip = new SpaceShip(scene, Date.now(), viewportSize, 2.5);
+        spaceShip.setInvincible();
         var Asteroids = [];
         var seedDate = Date.now();
         for(var i = 0; i < 5; i ++){
-            var a = new Asteroid(scene,5,4,viewportSize,seedDate);
+            var a = new Asteroid(scene,5,2,viewportSize,seedDate);
             a.randomStart();
             Asteroids.push(a);
         }
@@ -77,9 +95,13 @@
         //main render loop
         function render () {
             try{
+
+
+
                 var time = Date.now();
+                var invincible = spaceShip.getInvincible(time);
                 //shoot dem bullets
-                if(Space_Down){
+                if(Space_Down && !newgame.shown()){
 
                     var newBullet = spaceShip.shoot(time, Space_Held);
                     //if a new bullet has been created add it to the bullet array
@@ -92,31 +114,83 @@
                 else{
                     Space_Held = false;
                 }
-                if(Left_Down){
+                if(Left_Down && !newgame.shown()){
                     spaceShip.rotateLeft(time);
                 }
-                if(Right_Down){
+                if(Right_Down && !newgame.shown()){
                     spaceShip.rotateRight(time);
                 }
-                if(Forward_Down){
+                if(Forward_Down && !newgame.shown()){
                     spaceShip.goForward(time)
+                }
+                if(Y_Down && newgame.shown()){
+                    //START A NEW GAME
+                    spaceShip.setPosition(new THREE.Vector3(0,0,750));
+                    spaceShip.setRotation(new THREE.Vector3(0,0,0));
+                    spaceShip.setMomentum(new THREE.Vector3(0,0,0));
+                    spaceShip.setInvincible();
+                    invincible = true;
+
+                    var asteroids = []
+                    for(var i = 0; i < 5; i ++){
+                        var a = new Asteroid(scene,5,2,viewportSize,time - 1);
+                        a.randomStart();
+                        Asteroids.push(a);
+                    }
+                    Asteroids = Asteroids.concat(asteroids);
+
+                    //set the number of lives player has
+                    Lives = 3;
+                    for(var i = 1; i <= Lives; i ++){
+                        var lifePosition = new THREE.Vector3((viewportSize/-2) + (20 * i), (viewportSize /2) - 20, 750);
+                        var lifeShip = new SpaceShip(scene, Date.now(), viewportSize, 4);
+                        lifeShip.setPosition(lifePosition);
+                        LivesLeft.push(lifeShip);
+                    }
+
+                    newgame.hide();
                 }
 
                 //game logic goes here
-                spaceShip.draw(time);
+                if(!newgame.shown()) spaceShip.draw(time);
+                //check if spaceship is hit by asteroid
                 for(var i = 0; i < Asteroids.length; i ++){
+                    if(LivesLeft.length == 0){
+                        //died, remove everything first
+                        for(var j = 0; j < activeBullets.length; j++){
+                            var b = activeBullets.pop();
+                            b.destroy();
+                        }
+                        while(Asteroids.length != 0){
+                            var a = Asteroids.pop();
+                            var children = a.destroy();
+                            Asteroids = Asteroids.concat(children);
+                        }
+                        //hide ship
+                        spaceShip.setPosition(new THREE.Vector3(0,0,-1));
+                        //show newgame
+                        newgame.show();
+                        break;
+                    }
                     Asteroids[i].draw(time);
-                    if(Asteroids[i].checkCollision(spaceShip.getVertices())){
-                        alert("SHIP IS HIT!");
+                    if(Asteroids[i].checkCollision(spaceShip.getVertices()) && !invincible && !newgame.shown()){
+                        var ship = LivesLeft.pop();
+                        ship.clear();
+                        spaceShip.setPosition(new THREE.Vector3(0,0,750));
+                        spaceShip.setRotation(new THREE.Vector3(0,0,0));
+                        spaceShip.setMomentum(new THREE.Vector3(0,0,0));
+                        spaceShip.setInvincible();
+                        invincible = true;
                     } 
                 }
+                
                 //check all bullets
                 var tempBullets = [];
                 for(var i = 0; i < activeBullets.length; i ++){
                     var bullet = activeBullets[i];
 
                     //check to see if this is a "dead" bullet
-                    if(bullet.checkTime(time)){
+                    if(bullet.checkTime(time) && !newgame.shown()){
                         //check for an asteroid intersection
                         var destroy = false;
                         var asteroidsToAdd = [];
@@ -183,6 +257,9 @@
                 case 39: //'right arrow'
                     Right_Down = true;
                     break;
+                case 89: // 'y'
+                    Y_Down = true;
+                    break;
             }
         }
 
@@ -203,6 +280,9 @@
                 case 39: //'right arrow'
                     Right_Down = false;
                     break;
+                case 89: // 'y'
+                    Y_Down = false;
+                    break;
             }
         }
 
@@ -214,7 +294,7 @@
 
     }
     catch(Error){
-        alert(Error);
+        throw(Error);
     }
     }
 

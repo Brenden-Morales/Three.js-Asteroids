@@ -1,9 +1,12 @@
-function SpaceShip(scene, time, viewportSize){
+function SpaceShip(scene, time, viewportSize, scale){
 	"use strict";
 
 
 	//the current vector for speed / direction of the spaceship
 	var shipMomentum = new THREE.Vector3(0,0,0);
+
+	var invincible = false;
+	var invincibleTime = 0;
 
 	//last time the ship was updated
 	var lastTime = time;
@@ -48,13 +51,45 @@ function SpaceShip(scene, time, viewportSize){
 
     //set position and scale of the spaceship / exhaust
     spaceShip.position.set(0,0,750);
-    spaceShip.scale.set(2.5,2.5,1);
+    spaceShip.scale.set(scale,scale,1);
     shipExhaust.position.set(0,0,0);
-    shipExhaust.scale.set(2.5,2.5,1);
+    shipExhaust.scale.set(scale,scale,1);
     
     //add spaceship and exhaust to the scene
     scene.add(spaceShip);
     scene.add(shipExhaust);
+
+    this.setPosition = function(v){
+    	spaceShip.position.set(v.x,v.y,v.z);
+    	shipExhaust.position.set(v.x,v.y,0);
+    }
+    this.setRotation = function(v){
+    	spaceShip.rotation.z = v.z;
+        shipExhaust.rotation.z = v.z;
+    }
+    this.setMomentum = function(v){
+    	shipMomentum.copy(v);
+    }
+    this.clear = function(){
+    	scene.remove(spaceShip);
+    	scene.remove(shipExhaust);
+    }
+
+    this.setInvincible = function(){
+    	invincible = true;
+    }
+    this.getInvincible = function(t){
+    	updateTime(t);
+    	if(invincible){
+    		invincibleTime += timeDelta;
+    		if(invincibleTime >= 5){
+    			invincible = false;
+    			invincibleTime = 0;
+    		}
+    	}
+    	return invincible;
+    }
+    
 
     this.rotateLeft = function(t){
     	updateTime(t);
@@ -102,7 +137,7 @@ function SpaceShip(scene, time, viewportSize){
     	//check to see if enough time has elapsed since the last shot
     	if(lastTime - lastShot > shotdelay){
     		lastShot = lastTime;
-    		var b = new Bullet(spaceShip.position, spaceShip.rotation, 2.5, scene, lastTime, viewportSize);
+    		var b = new Bullet(spaceShip.position, spaceShip.rotation, scale, scene, lastTime, viewportSize);
     		return b;
     	}
     	
